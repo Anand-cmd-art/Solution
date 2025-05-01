@@ -1,27 +1,37 @@
+// hardhat.config.js
+require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
-const hre = require("hardhat");
 
-async function main() {
-  const [deployer] = await hre.ethers.getSigners();
-  console.log("Deploying with:", deployer.address);
+module.exports = {
+  solidity: "0.8.20",
 
-  const Forwarder = await hre.ethers.getContractFactory("MinimalForwarder");
-  const forwarder = await Forwarder.deploy();
-  await forwarder.deployed();
+  defaultNetwork: "polygonZkEvmTestnet",
 
-  const Ledger = await hre.ethers.getContractFactory("RideLedger");
-  const ledger  = await Ledger.deploy(forwarder.address, deployer.address); // backend == deployer
-  await ledger.deployed();
+  networks: {
+    hardhat: {
+      chainId: 31337,
+    },
+    polygonZkEvmTestnet: {
+      url: process.env.ALCHEMY_ZKEVM_TESTNET_URL,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 1442,
+    },
+    polygonZkEvmMainnet: {
+      url: process.env.ALCHEMY_ZKEVM_MAINNET_URL,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 1101,
+    },
+  },
 
-  const Paymaster = await hre.ethers.getContractFactory("Paymaster");
-  const paymaster = await Paymaster.deploy(process.env.GSN_RELAY_HUB, ledger.address);
-  await paymaster.deployed();
+  etherscan: {
+    apiKey: {
+      polygonZkEvmTestnet: process.env.ZKEVM_TESTNET_POLYGONSCAN_KEY || "",
+      polygonZkEvmMainnet: process.env.ZKEVM_MAINNET_POLYGONSCAN_KEY || "",
+    },
+  },
 
-  console.table({
-    Forwarder: forwarder.address,
-    RideLedger: ledger.address,
-    Paymaster: paymaster.address
-  });
-}
-
-main().catch(err => { console.error(err); process.exit(1); });
+  gsn: {
+    forwarderAddress: process.env.GSN_FORWARDER_ADDRESS || "",
+    paymasterAddress: process.env.GSN_PAYMASTER_ADDRESS || "",
+  },
+};
