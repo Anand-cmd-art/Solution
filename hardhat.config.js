@@ -1,41 +1,27 @@
-require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
+const hre = require("hardhat");
 
-module.exports = {
-  solidity: "0.8.20",
+async function main() {
+  const [deployer] = await hre.ethers.getSigners();
+  console.log("Deploying with:", deployer.address);
 
-  defaultNetwork: "polygonZkEvmTestnet",
+  const Forwarder = await hre.ethers.getContractFactory("MinimalForwarder");
+  const forwarder = await Forwarder.deploy();
+  await forwarder.deployed();
 
+  const Ledger = await hre.ethers.getContractFactory("RideLedger");
+  const ledger  = await Ledger.deploy(forwarder.address, deployer.address); // backend == deployer
+  await ledger.deployed();
 
-  networks: {
-    // Local Hardhat network
-    hardhat: {
-      chainId: 31337,
-    },
+  const Paymaster = await hre.ethers.getContractFactory("Paymaster");
+  const paymaster = await Paymaster.deploy(process.env.GSN_RELAY_HUB, ledger.address);
+  await paymaster.deployed();
 
+  console.table({
+    Forwarder: forwarder.address,
+    RideLedger: ledger.address,
+    Paymaster: paymaster.address
+  });
+}
 
-
-    // Polygon zkEVM Mainnet (Chain ID 1101)
-    polygonZkEvmMainnet: {
-      url: process.env.ALCHEMY_ZKEVM_MAINNET_URL,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 1101,            
-      gas: "auto",
-      gasPrice: "auto",
-    },
-  },
-
-  
-  Polygonscan: {
-    apiKey: {
-      polygonZkEvmTestnet: process.env.ZKEVM_TESTNET_POLYGONSCAN_KEY,
-      polygonZkEvmMainnet: process.env.ZKEVM_MAINNET_POLYGONSCAN_KEY,
-    },
-  },
-
-  // Custom GSN settings (you'll read these in your deploy scripts / contracts)
-  gsn: {
-    forwarderAddress: process.env.GSN_FORWARDER_ADDRESS,
-    paymasterAddress: process.env.GSN_PAYMASTER_ADDRESS,
-  },
-};
+main().catch(err => { console.error(err); process.exit(1); });

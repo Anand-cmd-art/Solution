@@ -1,0 +1,4 @@
+FROM node:23-slim	
+RUN npm i -g @opengsn/cli
+ENTRYPOINT ["opengsn","run-relayer","--devMode","true","--relayHubAddress","${HUB}","--paymasterAddress","${PAYMASTER}","--ethereumNodeUrl","${RPC}"
+

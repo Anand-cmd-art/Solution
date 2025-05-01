@@ -25,7 +25,7 @@ export default function Dispute() {
   return (
     <form onSubmit={disputeRide} className="p-4 bg-slate-800 rounded shadow">
       <h3 className="text-lg font-semibold mb-2">Raise Dispute</h3>
-      <input
+      <input-
         type="number"
         value={rideId}
         onChange={e => setRideId(e.target.value)}

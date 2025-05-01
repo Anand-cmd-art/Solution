@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  relayer:
+    build:
+      context: ./infra
+      dockerfile: Dockerfile.relayer
+    environment:
+      PAYMASTER: ${PAYMASTER_ADDRESS}
+      HUB: ${GSN_RELAY_HUB}
+      RPC: ${ZKEVM_RPC}
+    restart: unless-stopped
+    
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_PAYMASTER=${PAYMASTER_ADDRESS}
+      - REACT_APP_RIDE_LEDGER=${RIDE_LEDGER_ADDRESS}
+    depends_on:
+      - relayer
