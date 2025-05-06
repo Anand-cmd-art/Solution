@@ -1,82 +1,59 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
-
 import "@opengsn/contracts/src/BasePaymaster.sol";
 import "@opengsn/contracts/src/interfaces/IRelayHub.sol";
 import "@opengsn/contracts/src/utils/GsnTypes.sol";
-
-// this is done becuse the GsnTypes.UserOperation struct is not imported from the GSN library
-// If not, define it here as per the GSN documentation
-struct UserOperation {
-    address sender;
-    uint256 nonce;
-    bytes initCode;
-    bytes callData;
-    uint256 callGas;
-    uint256 verificationGas;
-    uint256 preVerificationGas;
-    uint256 maxFeePerGas;
-    uint256 maxPriorityFeePerGas;
-    bytes paymasterAndData;
-    bytes signature;
-}
-
-enum PostOpMode {
-    opReverted,
-    opSucceeded,
-    postOpReverted
-}
-
-
-
-contract RiderLedgerPaymaster is BasePaymaster {
-    // the two contracts this Paymaster will sponsor
+abstract contract RiderLedgerPaymaster is BasePaymaster {
     address public immutable riderLedger;
     address public immutable extendedLedger;
-
     constructor(
         address relayHub,
         address _riderLedger,
         address _extendedLedger
     ) {
-        // point to the GSN RelayHub on zkEVM
+        // Tell the paymaster which RelayHub to use
         setRelayHub(IRelayHub(relayHub));
-
         riderLedger   = _riderLedger;
         extendedLedger = _extendedLedger;
     }
-
-    /// @inheritdoc BasePaymaster
-    function _validatePaymasterUserOp(
-        UserOperation calldata op,
-        bytes32,           
-        uint256            
-    )
+    /// @notice Every BasePaymaster must expose a version string
+    function versionPaymaster() external pure returns (string memory) {
+        return "RiderLedgerPaymaster_v1";
+    }
+    /**
+     * @notice Called *before* the relayed call. We check here that the
+     * `to` address is one of our two ledger contracts.
+     */
+    function _preRelayedCall(
+        GsnTypes.RelayRequest calldata relayRequest,
+        bytes calldata           ,  // signature
+        bytes calldata           ,  // approvalData
+        uint256                  )  // maxPossibleGas
         internal
         view
-        override
-        returns (bytes memory context, uint256 validity)
+        returns (bytes memory context, bool rejectOnRecipientRevert)
     {
-        // only sponsor calls whose target is one of our two ledger contracts
-        address to = op.to;
+        address to = relayRequest.request.to;
         require(
             to == riderLedger || to == extendedLedger,
             "Paymaster: target not whitelisted"
         );
-
-        return ("", 3600);
+        return ("", false);
     }
-
-    /// @inheritdoc BasePaymaster
-    function _postOp(
-        bytes calldata, 
-        GsnTypes.PostOpMode, 
-        uint256, 
-        bytes calldata
-    ) internal override {
-        // no post-op accounting needed
+    /**
+     * @notice Nothing to do after the call—must still be implemented.
+     */
+    function _postRelayedCall(
+        bytes calldata         ,  // context
+        bool                  ,  // success
+        uint256               ,  // gasUseWithoutPost
+        GsnTypes.RelayData calldata  // relayData
+    ) internal{
+        // no-op
     }
-
-    /// @notice allow funding the Paymaster with native MATIC
-    receive() external payable {}
+    /// @dev Auto-forward any MATIC sent here into your RelayHub balance
+    receive() external payable override {
+        IRelayHub hub = IRelayHub(relayHub);
+        hub.depositFor{ value: msg.value }(address(this));
+    }
 }

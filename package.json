@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "dotenv": "^16.5.0",
     "hardhat": "^2.23.0"
@@ -18,7 +19,7 @@
   "dependencies": {
     "@opengsn/contracts": "^2.2.6",
     "@opengsn/provider": "^3.0.0-beta.6",
-    "@openzeppelin/contracts": "^5.3.0",
+    "@openzeppelin/contracts": "^4.7.3",
     "@thirdweb-dev/cli": "^0.14.12",
     "ethers": "^6.13.7",
     "thirdweb": "^5.96.4"
